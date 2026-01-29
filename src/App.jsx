@@ -5,33 +5,31 @@ import {
   Navigate,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { ThemeProvider } from "@mui/material/styles";
+import { CssBaseline } from "@mui/material";
+import theme from "./theme";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
-
-// Component bảo vệ: Nếu chưa login thì chuyển hướng về Login
-function PrivateRoute({ children }) {
-  const { currentUser } = useAuth();
-  return currentUser ? children : <Navigate to="/login" />;
-}
+import PrivateRoute from "./components/PrivateRoute";
 
 function App() {
   return (
     <Router>
       <AuthProvider>
-        <Routes>
-          {/* Route Login */}
-          <Route path="/login" element={<Login />} />
-
-          {/* Route được bảo vệ (Dashboard) */}
-          <Route
-            path="/"
-            element={
-              <PrivateRoute>
-                <Home />
-              </PrivateRoute>
-            }
-          />
-        </Routes>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/"
+              element={
+                <PrivateRoute>
+                  <Home />
+                </PrivateRoute>
+              }
+            />
+          </Routes>
+        </ThemeProvider>
       </AuthProvider>
     </Router>
   );

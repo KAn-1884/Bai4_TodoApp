@@ -1,5 +1,3 @@
-// src/components/TodoItem.jsx
-// (Phần import giữ nguyên)
 import {
   Card,
   CardContent,
@@ -11,19 +9,39 @@ import {
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
+import EventBusyIcon from "@mui/icons-material/EventBusy";
 
 export default function TodoItem({
   todo,
-  toggleComplete,
+  toggleStatus,
   handleDelete,
   handleEdit,
 }) {
+  const isDone = todo.status === "done";
+
+  // Logic kiểm tra quá hạn: Chưa xong VÀ (deadline < hiện tại)
+  const isOverdue =
+    !isDone &&
+    todo.deadline &&
+    new Date(todo.deadline.seconds * 1000) < new Date();
+
   const onEditClick = () => {
-    const newTitle = window.prompt("Sửa tên công việc:", todo.title);
-    if (newTitle && newTitle.trim() !== "") {
-      handleEdit(todo.id, newTitle);
+    const newText = window.prompt("Sửa nội dung:", todo.text);
+    if (newText && newText.trim() !== "") {
+      handleEdit(todo.id, newText);
     }
+  };
+
+  const formatDate = (timestamp) => {
+    if (!timestamp) return "";
+    return new Date(timestamp.seconds * 1000).toLocaleString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   return (
@@ -32,88 +50,81 @@ export default function TodoItem({
         mb: 2,
         display: "flex",
         alignItems: "center",
-        p: 2, // Tăng padding lên cho thoáng (trước là 1)
+        p: 2,
         transition: "all 0.3s ease",
-        // Hiệu ứng hover nổi nhẹ lên
-        "&:hover": {
-          transform: "translateY(-4px)",
-          boxShadow: "0 12px 24px rgba(0,0,0,0.1)",
-        },
-        opacity: todo.completed ? 0.6 : 1,
-        // Nếu completed thì nền xám chìm, nếu chưa thì nền trắng sáng
-        bgcolor: todo.completed ? "action.hover" : "background.paper",
+        opacity: isDone ? 0.6 : 1,
+        bgcolor: isDone ? "#f9fafb" : "white",
+        // Viền: Xanh (Done) - Đỏ (Quá hạn) - Tím (Bình thường)
+        borderLeft: isDone
+          ? "4px solid #4caf50"
+          : isOverdue
+            ? "4px solid #f44336"
+            : "4px solid #6366f1",
       }}
     >
       <Checkbox
-        checked={todo.completed}
-        onChange={() => toggleComplete(todo)}
-        sx={{
-          color: "text.secondary",
-          "&.Mui-checked": { color: "primary.main" },
-        }}
+        checked={isDone}
+        onChange={() => toggleStatus(todo)}
+        icon={<RadioButtonUncheckedIcon />}
+        checkedIcon={<CheckCircleIcon />}
+        color="success"
       />
 
       <CardContent sx={{ flexGrow: 1, p: "0 !important", ml: 1 }}>
         <Typography
           variant="body1"
           sx={{
-            textDecoration: todo.completed ? "line-through" : "none",
-            fontWeight: 600, // Chữ đậm hơn chút cho dễ đọc
-            color: todo.completed ? "text.disabled" : "text.primary",
-            fontSize: "1.05rem",
+            textDecoration: isDone ? "line-through" : "none",
+            fontWeight: 600,
+            color: isDone
+              ? "text.disabled"
+              : isOverdue
+                ? "error.main"
+                : "text.primary",
           }}
         >
-          {todo.title}
+          {todo.text}
         </Typography>
 
-        {/* Deadline Chip */}
-        <Box display="flex" alignItems="center" gap={1} mt={0.5}>
+        <Box
+          display="flex"
+          alignItems="center"
+          gap={1}
+          mt={0.5}
+          flexWrap="wrap"
+        >
           <Chip
-            icon={<CalendarTodayIcon sx={{ fontSize: "14px !important" }} />}
-            label={
-              todo.deadline
-                ? new Date(todo.deadline.seconds * 1000).toLocaleDateString(
-                    "vi-VN"
-                  )
-                : "Không thời hạn"
-            }
+            icon={isOverdue ? <EventBusyIcon /> : undefined}
+            label={`${isOverdue ? "Quá hạn: " : "Hạn: "} ${formatDate(todo.deadline)}`}
             size="small"
-            // Logic màu cho Chip deadline
-            color={todo.completed ? "default" : "secondary"}
-            variant={todo.completed ? "outlined" : "soft"} // "soft" là một biến thể nếu custom, ở đây dùng mặc định
-            sx={{
-              fontSize: "0.75rem",
-              borderRadius: "8px",
-              bgcolor: todo.completed
-                ? "transparent"
-                : "rgba(236, 72, 153, 0.1)", // Màu nền nhẹ cho chip
-              color: todo.completed ? "inherit" : "secondary.main",
-              border: "none",
-            }}
+            variant={isOverdue ? "filled" : "outlined"}
+            color={isOverdue ? "error" : "default"}
+            sx={{ fontSize: "0.7rem", height: 24 }}
           />
+
+          {isDone && todo.finishedTime && (
+            <Chip
+              label={`Xong: ${formatDate(todo.finishedTime)}`}
+              size="small"
+              color="success"
+              variant="outlined"
+              sx={{
+                fontSize: "0.7rem",
+                height: 24,
+                bgcolor: "#e8f5e9",
+                borderColor: "transparent",
+              }}
+            />
+          )}
         </Box>
       </CardContent>
 
       <Box>
-        <IconButton
-          size="small"
-          onClick={onEditClick}
-          sx={{
-            color: "text.secondary",
-            "&:hover": { color: "primary.main", bgcolor: "primary.50" },
-          }}
-        >
-          <EditIcon fontSize="small" />
+        <IconButton size="small" onClick={onEditClick}>
+          <EditIcon fontSize="small" color="primary" />
         </IconButton>
-        <IconButton
-          size="small"
-          onClick={() => handleDelete(todo.id)}
-          sx={{
-            color: "text.secondary",
-            "&:hover": { color: "error.main", bgcolor: "error.50" },
-          }}
-        >
-          <DeleteIcon fontSize="small" />
+        <IconButton size="small" onClick={() => handleDelete(todo.id)}>
+          <DeleteIcon fontSize="small" color="error" />
         </IconButton>
       </Box>
     </Card>

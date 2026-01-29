@@ -1,9 +1,14 @@
-// Import các hàm cần thiết từ Firebase SDK
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth"; // Thêm Auth
-import { getFirestore } from "firebase/firestore"; // Thêm Firestore
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 
-// Config của bạn (Mình giữ nguyên)
+// Config gốc của bạn
 const firebaseConfig = {
   apiKey: "AIzaSyCHrtHJlhPLauZCyWMRguVJ_hMLwImUscs",
   authDomain: "todo-app-student.firebaseapp.com",
@@ -16,10 +21,27 @@ const firebaseConfig = {
   measurementId: "G-KGY0N5F68Z",
 };
 
-// 1. Khởi tạo app
 const app = initializeApp(firebaseConfig);
 
-// 2. Khởi tạo và EXPORT các dịch vụ để dùng ở nơi khác (QUAN TRỌNG)
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const db = getFirestore(app);
+
+// Logic đồng bộ User
+export const syncUserToFirestore = async (user) => {
+  if (!user) return;
+
+  const userRef = doc(db, "users", user.uid);
+  const userSnap = await getDoc(userRef);
+
+  if (!userSnap.exists()) {
+    await setDoc(userRef, {
+      id: user.uid,
+      name: user.displayName || user.email.split("@")[0],
+      email: user.email,
+      image: user.photoURL || "",
+      createdAt: serverTimestamp(),
+      authProvider: user.providerData[0]?.providerId || "password",
+    });
+  }
+};

@@ -13,8 +13,6 @@ import {
 import Navbar from "../components/Navbar";
 import TodoForm from "../components/TodoForm";
 import TodoItem from "../components/TodoItem";
-
-// Firebase Imports
 import { db } from "../services/firebase";
 import {
   collection,
@@ -27,33 +25,32 @@ import {
   updateDoc,
   serverTimestamp,
   orderBy,
+  Timestamp,
 } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 
 export default function Home() {
   const { currentUser } = useAuth();
 
-  // --- STATE QUẢN LÝ DỮ LIỆU ---
-  const [todos, setTodos] = useState([]); // List gốc từ DB
+  const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // --- STATE QUẢN LÝ TÌM KIẾM & LỌC ---
+  // Filter & Sort State
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all"); // all | completed | pending
-  const [sortType, setSortType] = useState("newest"); // newest | oldest | a-z
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [sortType, setSortType] = useState("deadline_asc"); // Mặc định sắp xếp theo deadline
 
-  // 1. Tải dữ liệu Realtime từ Firestore
+  // 1. Tải dữ liệu Realtime
   useEffect(() => {
     if (!currentUser) return;
 
-    // Query: Lấy todos CỦA USER HIỆN TẠI, sắp xếp theo ngày tạo giảm dần
+    // Query: Lấy todos có userId trùng với currentUser
     const q = query(
       collection(db, "todos"),
-      where("uid", "==", currentUser.uid),
-      orderBy("createdAt", "desc")
+      where("userId", "==", currentUser.uid),
+      orderBy("createdAt", "desc"),
     );
 
-    // Lắng nghe thay đổi (Realtime)
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const todoList = snapshot.docs.map((doc) => ({
         id: doc.id,
@@ -66,63 +63,68 @@ export default function Home() {
     return () => unsubscribe();
   }, [currentUser]);
 
-  // 2. Xử lý Thêm Todo
-  const addTodo = async (title) => {
-    if (!title) return;
+  // 2. Thêm Todo Mới (Đã sửa để nhận date)
+  const addTodo = async (text, deadlineDate) => {
+    if (!text) return;
     await addDoc(collection(db, "todos"), {
-      uid: currentUser.uid, // Quan trọng: Gán task cho user hiện tại
-      title: title,
-      completed: false,
+      userId: currentUser.uid,
+      text: text,
+      status: "pending",
+      // Chuyển Date JS -> Firebase Timestamp
+      deadline: Timestamp.fromDate(deadlineDate),
+      finishedTime: null,
       createdAt: serverTimestamp(),
-      deadline: serverTimestamp(), // Demo: Lấy luôn giờ hiện tại làm deadline
     });
   };
 
-  // 3. Xử lý Update trạng thái (Done/Undone)
-  const toggleComplete = async (todo) => {
+  // 3. Đổi trạng thái
+  const toggleStatus = async (todo) => {
+    const newStatus = todo.status === "pending" ? "done" : "pending";
+
     await updateDoc(doc(db, "todos", todo.id), {
-      completed: !todo.completed,
+      status: newStatus,
+      finishedTime: newStatus === "done" ? serverTimestamp() : null,
     });
   };
 
-  // 4. Xử lý Xóa
+  // 4. Xóa
   const handleDelete = async (id) => {
-    const confirm = window.confirm("Bạn có chắc muốn xóa?");
-    if (confirm) {
+    if (window.confirm("Xóa công việc này?")) {
       await deleteDoc(doc(db, "todos", id));
     }
   };
 
-  // 5. Xử lý Sửa tên
-  const handleEdit = async (id, newTitle) => {
+  // 5. Sửa nội dung
+  const handleEdit = async (id, newText) => {
     await updateDoc(doc(db, "todos", id), {
-      title: newTitle,
+      text: newText,
     });
   };
 
-  // --- LOGIC LỌC & TÌM KIẾM (Xử lý ở Client cho nhanh) ---
+  // --- CLIENT-SIDE FILTER & SORT ---
   const filteredTodos = useMemo(() => {
     let result = todos;
 
-    // a. Lọc theo tìm kiếm
+    // Search theo text
     if (searchTerm) {
       result = result.filter((t) =>
-        t.title.toLowerCase().includes(searchTerm.toLowerCase())
+        t.text.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
 
-    // b. Lọc theo trạng thái
-    if (filterStatus === "completed") {
-      result = result.filter((t) => t.completed);
-    } else if (filterStatus === "pending") {
-      result = result.filter((t) => !t.completed);
+    // Filter theo status
+    if (filterStatus !== "all") {
+      result = result.filter((t) => t.status === filterStatus);
     }
 
-    // c. Sắp xếp
+    // Sort (Đã nâng cấp logic)
     result.sort((a, b) => {
-      if (sortType === "newest") return b.createdAt - a.createdAt; // Mặc định Firestore đã trả về đúng, nhưng sort lại cho chắc
-      if (sortType === "oldest") return a.createdAt - b.createdAt;
-      if (sortType === "a-z") return a.title.localeCompare(b.title);
+      const dateA = a.deadline?.seconds || 0;
+      const dateB = b.deadline?.seconds || 0;
+
+      if (sortType === "deadline_desc") return dateB - dateA;
+      if (sortType === "deadline_asc") return dateA - dateB;
+      if (sortType === "status") return a.status.localeCompare(b.status);
       return 0;
     });
 
@@ -130,28 +132,25 @@ export default function Home() {
   }, [todos, searchTerm, filterStatus, sortType]);
 
   return (
-    <Box sx={{ bgcolor: "#f4f6f8", minHeight: "100vh" }}>
+    <Box sx={{ bgcolor: "#f3f4f6", minHeight: "100vh" }}>
       <Navbar />
 
       <Container maxWidth="md" sx={{ mt: 4, pb: 5 }}>
-        {/* Header Title */}
         <Box sx={{ textAlign: "center", mb: 4 }}>
-          <Typography variant="h4" fontWeight="bold" color="primary">
+          <Typography variant="h4" fontWeight="800" color="primary.dark">
             Quản Lý Công Việc
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            User: {currentUser?.email}
+            Xin chào, {currentUser?.displayName || currentUser?.email}
           </Typography>
         </Box>
 
-        {/* Form Thêm Mới */}
         <TodoForm addTodo={addTodo} />
 
-        {/* --- THANH CÔNG CỤ (Tìm kiếm - Lọc - Sort) --- */}
+        {/* TOOLBAR */}
         <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
-          {/* Tìm kiếm */}
           <TextField
-            label="Tìm kiếm công việc..."
+            label="Tìm kiếm..."
             variant="outlined"
             size="small"
             sx={{ flexGrow: 1, bgcolor: "white" }}
@@ -159,7 +158,6 @@ export default function Home() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
 
-          {/* Lọc Trạng Thái */}
           <FormControl size="small" sx={{ minWidth: 120, bgcolor: "white" }}>
             <InputLabel>Trạng thái</InputLabel>
             <Select
@@ -168,12 +166,11 @@ export default function Home() {
               onChange={(e) => setFilterStatus(e.target.value)}
             >
               <MenuItem value="all">Tất cả</MenuItem>
-              <MenuItem value="pending">Chưa xong</MenuItem>
-              <MenuItem value="completed">Đã xong</MenuItem>
+              <MenuItem value="pending">Đang làm</MenuItem>
+              <MenuItem value="done">Hoàn thành</MenuItem>
             </Select>
           </FormControl>
 
-          {/* Sắp xếp */}
           <FormControl size="small" sx={{ minWidth: 150, bgcolor: "white" }}>
             <InputLabel>Sắp xếp</InputLabel>
             <Select
@@ -181,14 +178,14 @@ export default function Home() {
               label="Sắp xếp"
               onChange={(e) => setSortType(e.target.value)}
             >
-              <MenuItem value="newest">Mới nhất</MenuItem>
-              <MenuItem value="oldest">Cũ nhất</MenuItem>
-              <MenuItem value="a-z">Tên A-Z</MenuItem>
+              <MenuItem value="deadline_asc">Hạn chót (Gần nhất)</MenuItem>
+              <MenuItem value="deadline_desc">Hạn chót (Xa nhất)</MenuItem>
+              <MenuItem value="status">Theo Trạng thái</MenuItem>
             </Select>
           </FormControl>
         </Box>
 
-        {/* --- DANH SÁCH CÔNG VIỆC --- */}
+        {/* LIST */}
         <Box>
           {loading ? (
             <Box display="flex" justifyContent="center" mt={4}>
@@ -200,7 +197,7 @@ export default function Home() {
                 <TodoItem
                   key={todo.id}
                   todo={todo}
-                  toggleComplete={toggleComplete}
+                  toggleStatus={toggleStatus}
                   handleDelete={handleDelete}
                   handleEdit={handleEdit}
                 />
@@ -210,9 +207,9 @@ export default function Home() {
                 <Typography
                   align="center"
                   color="text.secondary"
-                  sx={{ mt: 4, fontStyle: "italic" }}
+                  sx={{ mt: 4 }}
                 >
-                  Không tìm thấy công việc nào phù hợp.
+                  Không có công việc nào.
                 </Typography>
               )}
             </>

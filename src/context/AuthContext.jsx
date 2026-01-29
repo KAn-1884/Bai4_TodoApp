@@ -6,11 +6,14 @@ import {
   onAuthStateChanged,
   signInWithPopup,
 } from "firebase/auth";
-import { auth, googleProvider } from "../services/firebase";
+import {
+  auth,
+  googleProvider,
+  syncUserToFirestore,
+} from "../services/firebase";
 
 const AuthContext = createContext();
 
-// Hook để gọi nhanh context ở các component khác
 export function useAuth() {
   return useContext(AuthContext);
 }
@@ -19,31 +22,30 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // 1. Đăng ký
-  function signup(email, password) {
-    return createUserWithEmailAndPassword(auth, email, password);
+  async function signup(email, password) {
+    const res = await createUserWithEmailAndPassword(auth, email, password);
+    await syncUserToFirestore(res.user);
+    return res;
   }
 
-  // 2. Đăng nhập Email/Pass
   function login(email, password) {
     return signInWithEmailAndPassword(auth, email, password);
   }
 
-  // 3. Đăng nhập Google
-  function loginWithGoogle() {
-    return signInWithPopup(auth, googleProvider);
+  async function loginWithGoogle() {
+    const res = await signInWithPopup(auth, googleProvider);
+    await syncUserToFirestore(res.user);
+    return res;
   }
 
-  // 4. Đăng xuất
   function logout() {
     return signOut(auth);
   }
 
-  // 5. Theo dõi trạng thái user (tự động chạy khi app load)
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
-      setLoading(false); // Đã check xong, tắt loading
+      setLoading(false);
     });
     return unsubscribe;
   }, []);
