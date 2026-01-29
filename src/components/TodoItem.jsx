@@ -11,7 +11,6 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
-import EventBusyIcon from "@mui/icons-material/EventBusy";
 
 export default function TodoItem({
   todo,
@@ -19,13 +18,8 @@ export default function TodoItem({
   handleDelete,
   handleEdit,
 }) {
+  // Kiểm tra status thay vì completed
   const isDone = todo.status === "done";
-
-  // Logic kiểm tra quá hạn: Chưa xong VÀ deadline < hiện tại
-  const isOverdue =
-    !isDone &&
-    todo.deadline &&
-    new Date(todo.deadline.seconds * 1000) < new Date();
 
   const onEditClick = () => {
     const newText = window.prompt("Sửa nội dung:", todo.text);
@@ -34,11 +28,15 @@ export default function TodoItem({
     }
   };
 
+  // Format ngày giờ an toàn
   const formatDate = (timestamp) => {
     if (!timestamp) return "";
-    return new Date(timestamp.seconds * 1000).toLocaleString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
+    return new Date(timestamp.seconds * 1000).toLocaleDateString("vi-VN");
+  };
+
+  const formatTime = (timestamp) => {
+    if (!timestamp) return "";
+    return new Date(timestamp.seconds * 1000).toLocaleTimeString("vi-VN", {
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -51,14 +49,14 @@ export default function TodoItem({
         display: "flex",
         alignItems: "center",
         p: 2,
+        transition: "all 0.3s ease",
+        "&:hover": {
+          transform: "translateY(-2px)",
+          boxShadow: "0 4px 10px rgba(0,0,0,0.05)",
+        },
         opacity: isDone ? 0.6 : 1,
         bgcolor: isDone ? "#f9fafb" : "white",
-        // Viền: Xanh (Xong) - Đỏ (Quá hạn) - Tím (Bình thường)
-        borderLeft: isDone
-          ? "4px solid #4caf50"
-          : isOverdue
-            ? "4px solid #f44336"
-            : "4px solid #6366f1",
+        borderLeft: isDone ? "4px solid #4caf50" : "4px solid #6366f1",
       }}
     >
       <Checkbox
@@ -75,38 +73,40 @@ export default function TodoItem({
           sx={{
             textDecoration: isDone ? "line-through" : "none",
             fontWeight: 600,
-            color: isDone
-              ? "text.disabled"
-              : isOverdue
-                ? "error.main"
-                : "text.primary",
+            color: isDone ? "text.disabled" : "text.primary",
           }}
         >
           {todo.text}
         </Typography>
 
-        <Box display="flex" gap={1} mt={0.5} flexWrap="wrap">
-          {/* Chip Deadline */}
+        <Box
+          display="flex"
+          alignItems="center"
+          gap={1}
+          mt={0.5}
+          flexWrap="wrap"
+        >
+          {/* Hiển thị Deadline */}
           <Chip
-            icon={isOverdue ? <EventBusyIcon /> : undefined}
-            label={`${isOverdue ? "Quá hạn: " : "Hạn: "} ${formatDate(todo.deadline)}`}
+            label={`Hạn: ${formatDate(todo.deadline)}`}
             size="small"
-            variant={isOverdue ? "filled" : "outlined"}
-            color={isOverdue ? "error" : "default"}
+            variant="outlined"
+            color={isDone ? "default" : "primary"}
             sx={{ fontSize: "0.7rem", height: 24 }}
           />
 
+          {/* Hiển thị giờ hoàn thành nếu xong */}
           {isDone && todo.finishedTime && (
             <Chip
-              label={`Xong: ${formatDate(todo.finishedTime)}`}
+              label={`Xong lúc: ${formatTime(todo.finishedTime)}`}
               size="small"
               color="success"
-              variant="outlined"
+              variant="soft" // Nếu lỗi variant thì xóa dòng này đi
               sx={{
                 fontSize: "0.7rem",
                 height: 24,
                 bgcolor: "#e8f5e9",
-                borderColor: "transparent",
+                color: "#2e7d32",
               }}
             />
           )}

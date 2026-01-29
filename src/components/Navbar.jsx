@@ -26,6 +26,7 @@ export default function Navbar() {
   return (
     <AppBar position="static">
       <Toolbar>
+        {/* Logo / Tên App */}
         <Typography
           variant="h6"
           component="div"
@@ -34,26 +35,25 @@ export default function Navbar() {
           My Tasks
         </Typography>
 
-        {currentUser && (
-          <Box display="flex" alignItems="center" gap={2}>
-            <Typography
-              variant="body2"
-              sx={{ display: { xs: "none", sm: "block" } }}
-            >
-              {currentUser.email}
-            </Typography>
-            <Avatar sx={{ bgcolor: "secondary.main" }}>
-              {currentUser.email?.charAt(0)?.toUpperCase()}
-            </Avatar>
-            <Button
-              color="inherit"
-              startIcon={<LogoutIcon />}
-              onClick={handleLogout}
-            >
-              Logout
-            </Button>
-          </Box>
-        )}
+        {/* Thông tin User */}
+        <Box display="flex" alignItems="center" gap={2}>
+          <Typography
+            variant="body2"
+            sx={{ display: { xs: "none", sm: "block" } }}
+          >
+            {currentUser?.email}
+          </Typography>
+          <Avatar sx={{ bgcolor: "secondary.main" }}>
+            {currentUser?.email?.charAt(0)?.toUpperCase()}
+          </Avatar>
+          <Button
+            color="inherit"
+            startIcon={<LogoutIcon />}
+            onClick={handleLogout}
+          >
+            Logout
+          </Button>
+        </Box>
       </Toolbar>
     </AppBar>
   );

@@ -25,7 +25,7 @@ export function AuthProvider({ children }) {
   // 1. Đăng ký & Lưu User
   async function signup(email, password) {
     const res = await createUserWithEmailAndPassword(auth, email, password);
-    await syncUserToFirestore(res.user);
+    await syncUserToFirestore(res.user); // Lưu vào DB
     return res;
   }
 
@@ -37,7 +37,7 @@ export function AuthProvider({ children }) {
   // 3. Đăng nhập Google & Lưu User
   async function loginWithGoogle() {
     const res = await signInWithPopup(auth, googleProvider);
-    await syncUserToFirestore(res.user);
+    await syncUserToFirestore(res.user); // Lưu vào DB
     return res;
   }
 

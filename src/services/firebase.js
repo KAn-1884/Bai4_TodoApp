@@ -8,7 +8,6 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 
-// --- CONFIG GỐC CỦA BẠN (Không sửa dòng này để Login được) ---
 const firebaseConfig = {
   apiKey: "AIzaSyCHrtHJlhPLauZCyWMRguVJ_hMLwImUscs",
   authDomain: "todo-app-student.firebaseapp.com",
@@ -21,13 +20,14 @@ const firebaseConfig = {
   measurementId: "G-KGY0N5F68Z",
 };
 
+// 1. Khởi tạo app
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const db = getFirestore(app);
 
-// Logic đồng bộ User vào Firestore
+// --- HÀM MỚI: Đồng bộ User vào Firestore ---
 export const syncUserToFirestore = async (user) => {
   if (!user) return;
 

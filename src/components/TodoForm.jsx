@@ -4,20 +4,11 @@ import AddIcon from "@mui/icons-material/Add";
 
 export default function TodoForm({ addTodo }) {
   const [text, setText] = useState("");
-  // Mặc định Deadline là ngày mai
-  const [deadline, setDeadline] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    // Format YYYY-MM-DDTHH:mm cho input
-    return d.toISOString().slice(0, 16);
-  });
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!text.trim()) return;
-
-    // Gửi text và Date object ra ngoài
-    addTodo(text, new Date(deadline));
+    addTodo(text);
     setText("");
   };
 
@@ -28,7 +19,7 @@ export default function TodoForm({ addTodo }) {
     >
       <Box component="form" onSubmit={handleSubmit}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={9}>
             <TextField
               fullWidth
               variant="outlined"
@@ -36,21 +27,7 @@ export default function TodoForm({ addTodo }) {
               value={text}
               onChange={(e) => setText(e.target.value)}
               size="small"
-              required
               sx={{ bgcolor: "white" }}
-            />
-          </Grid>
-          <Grid item xs={12} sm={3}>
-            <TextField
-              fullWidth
-              type="datetime-local"
-              label="Hạn chót"
-              size="small"
-              value={deadline}
-              onChange={(e) => setDeadline(e.target.value)}
-              sx={{ bgcolor: "white" }}
-              InputLabelProps={{ shrink: true }}
-              required
             />
           </Grid>
           <Grid item xs={12} sm={3}>

@@ -25,27 +25,28 @@ import {
   updateDoc,
   serverTimestamp,
   orderBy,
-  Timestamp, // Nhớ import Timestamp
 } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 
 export default function Home() {
   const { currentUser } = useAuth();
+
   const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Filter & Sort State
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [sortType, setSortType] = useState("deadline_asc");
+  const [sortType, setSortType] = useState("deadline_desc");
 
   // 1. Tải dữ liệu Realtime
   useEffect(() => {
     if (!currentUser) return;
 
+    // Query: Lấy todos có userId trùng với currentUser
     const q = query(
       collection(db, "todos"),
-      where("userId", "==", currentUser.uid),
+      where("userId", "==", currentUser.uid), // Đúng yêu cầu: userId
       orderBy("createdAt", "desc"),
     );
 
@@ -61,25 +62,26 @@ export default function Home() {
     return () => unsubscribe();
   }, [currentUser]);
 
-  // 2. Thêm Todo Mới (Đã sửa để nhận date)
-  const addTodo = async (text, deadlineDate) => {
+  // 2. Thêm Todo Mới (Đúng Schema)
+  const addTodo = async (text) => {
     if (!text) return;
     await addDoc(collection(db, "todos"), {
-      userId: currentUser.uid,
-      text: text,
-      status: "pending",
-      // Chuyển Date JS -> Firebase Timestamp
-      deadline: Timestamp.fromDate(deadlineDate),
-      finishedTime: null,
+      userId: currentUser.uid, // Yêu cầu: userId
+      text: text, // Yêu cầu: text
+      status: "pending", // Yêu cầu: status (enum)
+      deadline: serverTimestamp(), // Demo: Deadline là ngày tạo
+      finishedTime: null, // Yêu cầu: finishedTime
       createdAt: serverTimestamp(),
     });
   };
 
-  // 3. Đổi trạng thái
+  // 3. Đổi trạng thái (Pending <-> Done)
   const toggleStatus = async (todo) => {
     const newStatus = todo.status === "pending" ? "done" : "pending";
+
     await updateDoc(doc(db, "todos", todo.id), {
       status: newStatus,
+      // Nếu xong thì ghi giờ, chưa xong thì xóa giờ
       finishedTime: newStatus === "done" ? serverTimestamp() : null,
     });
   };
@@ -91,7 +93,7 @@ export default function Home() {
     }
   };
 
-  // 5. Sửa
+  // 5. Sửa nội dung
   const handleEdit = async (id, newText) => {
     await updateDoc(doc(db, "todos", id), {
       text: newText,
@@ -102,20 +104,21 @@ export default function Home() {
   const filteredTodos = useMemo(() => {
     let result = todos;
 
-    // Search
+    // Search theo text
     if (searchTerm) {
       result = result.filter((t) =>
         t.text.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
 
-    // Filter
+    // Filter theo status
     if (filterStatus !== "all") {
       result = result.filter((t) => t.status === filterStatus);
     }
 
-    // Sort (Logic mới)
+    // Sort
     result.sort((a, b) => {
+      // Helper: an toàn khi deadline null
       const dateA = a.deadline?.seconds || 0;
       const dateB = b.deadline?.seconds || 0;
 
@@ -175,8 +178,8 @@ export default function Home() {
               label="Sắp xếp"
               onChange={(e) => setSortType(e.target.value)}
             >
-              <MenuItem value="deadline_asc">Hạn chót (Gần nhất)</MenuItem>
-              <MenuItem value="deadline_desc">Hạn chót (Xa nhất)</MenuItem>
+              <MenuItem value="deadline_desc">Deadline (Mới nhất)</MenuItem>
+              <MenuItem value="deadline_asc">Deadline (Cũ nhất)</MenuItem>
               <MenuItem value="status">Theo Trạng thái</MenuItem>
             </Select>
           </FormControl>
@@ -189,15 +192,27 @@ export default function Home() {
               <CircularProgress />
             </Box>
           ) : (
-            filteredTodos.map((todo) => (
-              <TodoItem
-                key={todo.id}
-                todo={todo}
-                toggleStatus={toggleStatus}
-                handleDelete={handleDelete}
-                handleEdit={handleEdit}
-              />
-            ))
+            <>
+              {filteredTodos.map((todo) => (
+                <TodoItem
+                  key={todo.id}
+                  todo={todo}
+                  toggleStatus={toggleStatus}
+                  handleDelete={handleDelete}
+                  handleEdit={handleEdit}
+                />
+              ))}
+
+              {filteredTodos.length === 0 && (
+                <Typography
+                  align="center"
+                  color="text.secondary"
+                  sx={{ mt: 4 }}
+                >
+                  Không có công việc nào.
+                </Typography>
+              )}
+            </>
           )}
         </Box>
       </Container>
