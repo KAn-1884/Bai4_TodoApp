@@ -8,7 +8,7 @@ export default function TodoForm({ addTodo }) {
   const [deadline, setDeadline] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 1);
-    // Format YYYY-MM-DDTHH:mm cho input type="datetime-local"
+    // Format YYYY-MM-DDTHH:mm cho input
     return d.toISOString().slice(0, 16);
   });
 
@@ -16,7 +16,7 @@ export default function TodoForm({ addTodo }) {
     e.preventDefault();
     if (!text.trim()) return;
 
-    // Truyền text và Date object ra ngoài
+    // Gửi text và Date object ra ngoài
     addTodo(text, new Date(deadline));
     setText("");
   };

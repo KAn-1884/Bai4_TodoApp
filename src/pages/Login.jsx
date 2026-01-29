@@ -21,14 +21,13 @@ export default function Login() {
   const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
-  // Xử lý đăng nhập Email/Pass
   async function handleSubmit(e) {
     e.preventDefault();
     try {
       setError("");
       setLoading(true);
       await login(email, password);
-      navigate("/"); // Thành công thì chuyển về trang chủ
+      navigate("/");
     } catch (err) {
       setError("Đăng nhập thất bại. Kiểm tra lại email/pass!");
       console.error(err);
@@ -36,7 +35,6 @@ export default function Login() {
     setLoading(false);
   }
 
-  // Xử lý đăng nhập Google
   async function handleGoogleLogin() {
     try {
       setError("");
@@ -85,8 +83,7 @@ export default function Login() {
             margin="normal"
             required
             fullWidth
-            label="Email Address"
-            autoComplete="email"
+            label="Email"
             autoFocus
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -95,9 +92,8 @@ export default function Login() {
             margin="normal"
             required
             fullWidth
-            label="Password"
+            label="Mật khẩu"
             type="password"
-            autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />

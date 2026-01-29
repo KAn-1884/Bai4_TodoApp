@@ -21,7 +21,7 @@ export default function TodoItem({
 }) {
   const isDone = todo.status === "done";
 
-  // Logic kiểm tra quá hạn: Chưa xong VÀ (deadline < hiện tại)
+  // Logic kiểm tra quá hạn: Chưa xong VÀ deadline < hiện tại
   const isOverdue =
     !isDone &&
     todo.deadline &&
@@ -51,10 +51,9 @@ export default function TodoItem({
         display: "flex",
         alignItems: "center",
         p: 2,
-        transition: "all 0.3s ease",
         opacity: isDone ? 0.6 : 1,
         bgcolor: isDone ? "#f9fafb" : "white",
-        // Viền: Xanh (Done) - Đỏ (Quá hạn) - Tím (Bình thường)
+        // Viền: Xanh (Xong) - Đỏ (Quá hạn) - Tím (Bình thường)
         borderLeft: isDone
           ? "4px solid #4caf50"
           : isOverdue
@@ -86,13 +85,8 @@ export default function TodoItem({
           {todo.text}
         </Typography>
 
-        <Box
-          display="flex"
-          alignItems="center"
-          gap={1}
-          mt={0.5}
-          flexWrap="wrap"
-        >
+        <Box display="flex" gap={1} mt={0.5} flexWrap="wrap">
+          {/* Chip Deadline */}
           <Chip
             icon={isOverdue ? <EventBusyIcon /> : undefined}
             label={`${isOverdue ? "Quá hạn: " : "Hạn: "} ${formatDate(todo.deadline)}`}

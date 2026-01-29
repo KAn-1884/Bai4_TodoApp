@@ -25,26 +25,24 @@ import {
   updateDoc,
   serverTimestamp,
   orderBy,
-  Timestamp,
+  Timestamp, // Nhớ import Timestamp
 } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 
 export default function Home() {
   const { currentUser } = useAuth();
-
   const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Filter & Sort State
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [sortType, setSortType] = useState("deadline_asc"); // Mặc định sắp xếp theo deadline
+  const [sortType, setSortType] = useState("deadline_asc");
 
   // 1. Tải dữ liệu Realtime
   useEffect(() => {
     if (!currentUser) return;
 
-    // Query: Lấy todos có userId trùng với currentUser
     const q = query(
       collection(db, "todos"),
       where("userId", "==", currentUser.uid),
@@ -80,7 +78,6 @@ export default function Home() {
   // 3. Đổi trạng thái
   const toggleStatus = async (todo) => {
     const newStatus = todo.status === "pending" ? "done" : "pending";
-
     await updateDoc(doc(db, "todos", todo.id), {
       status: newStatus,
       finishedTime: newStatus === "done" ? serverTimestamp() : null,
@@ -94,7 +91,7 @@ export default function Home() {
     }
   };
 
-  // 5. Sửa nội dung
+  // 5. Sửa
   const handleEdit = async (id, newText) => {
     await updateDoc(doc(db, "todos", id), {
       text: newText,
@@ -105,19 +102,19 @@ export default function Home() {
   const filteredTodos = useMemo(() => {
     let result = todos;
 
-    // Search theo text
+    // Search
     if (searchTerm) {
       result = result.filter((t) =>
         t.text.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
 
-    // Filter theo status
+    // Filter
     if (filterStatus !== "all") {
       result = result.filter((t) => t.status === filterStatus);
     }
 
-    // Sort (Đã nâng cấp logic)
+    // Sort (Logic mới)
     result.sort((a, b) => {
       const dateA = a.deadline?.seconds || 0;
       const dateB = b.deadline?.seconds || 0;
@@ -192,27 +189,15 @@ export default function Home() {
               <CircularProgress />
             </Box>
           ) : (
-            <>
-              {filteredTodos.map((todo) => (
-                <TodoItem
-                  key={todo.id}
-                  todo={todo}
-                  toggleStatus={toggleStatus}
-                  handleDelete={handleDelete}
-                  handleEdit={handleEdit}
-                />
-              ))}
-
-              {filteredTodos.length === 0 && (
-                <Typography
-                  align="center"
-                  color="text.secondary"
-                  sx={{ mt: 4 }}
-                >
-                  Không có công việc nào.
-                </Typography>
-              )}
-            </>
+            filteredTodos.map((todo) => (
+              <TodoItem
+                key={todo.id}
+                todo={todo}
+                toggleStatus={toggleStatus}
+                handleDelete={handleDelete}
+                handleEdit={handleEdit}
+              />
+            ))
           )}
         </Box>
       </Container>
